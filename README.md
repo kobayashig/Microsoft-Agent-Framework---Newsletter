@@ -23,5 +23,3 @@ Explorar e aprender como usar o Microsoft Agent Framework para criar agentes que
 
 
 ---
-
-**Status**: Em desenvolvimento 🔄
