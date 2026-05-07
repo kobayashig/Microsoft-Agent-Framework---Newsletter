@@ -17,21 +17,39 @@ public class NewsletterService(
     IAgent<IEnumerable<Article>, string> titleGeneratorAgent,
     
     [FromKeyedServices(AgentType.NewsletterGenerator)]
-    IAgent<IEnumerable<Article>, string> newsletterGerenatorAgent) : INewsletterService
+    IAgent<IEnumerable<Article>, string> newsletterGerenatorAgent,
+    
+    ISubscriberRepository subscriberRepository,
+    IEmailService emailService) : INewsletterService
 {
     public async Task SendAsync(CancellationToken cancellationToken)
     {
         logger.LogInformation("Recuperando os post da semana...");
         var posts = await articleRepository.GetFromLastWeekAsync(cancellationToken);
+        
         if (!posts.Any())
             return;
         
         logger.LogInformation("Gerando titulo da newsletter...");
-        var subject = await titleGeneratorAgent.RunAsync(posts, cancellationToken);
+        var subject = await titleGeneratorAgent.RunAsync(
+            posts, 
+            cancellationToken);
 
         logger.LogInformation("Gerando o conteúdo da newsletter...");
-        var body = await newsletterGerenatorAgent.RunAsync(posts, cancellationToken);
+        var body = await newsletterGerenatorAgent.RunAsync(
+            posts,
+            cancellationToken);
         
+        logger.LogInformation("Recuperando os inscritos...");
+        var subscribers = await subscriberRepository.GetAllAsync(cancellationToken);
         
+        logger.LogInformation("Enviando a newsletter para os inscritos...");
+        foreach (var subscriber in subscribers)
+            await emailService.SendAsync(
+                subscriber.Name,
+                subscriber.Email,
+                subject,
+                body,
+                cancellationToken);
     }
 }
